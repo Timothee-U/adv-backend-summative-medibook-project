@@ -1,0 +1,25 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: medibook-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: medibook
+      MYSQL_USER: medibook
+      MYSQL_PASSWORD: medibook123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+  redis:
+    image: redis:7
+    container_name: medibook-redis
+    ports:
+      - "6379:6379"
+  mongo:
+    image: mongo:7
+    container_name: medibook-mongo
+    ports:
+      - "27017:27017"
+volumes:
+  mysql_data:

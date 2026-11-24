@@ -1,3 +1,47 @@
+# MediBook - Setup
+
+Video walkthrough: PASTE-LINK-HERE
+
+## Requirements
+Node.js 20+, Docker Desktop (runs MySQL and Redis).
+
+## Run it
+1. `docker compose up -d`
+2. Copy `.env.example` to `.env` (defaults match docker-compose.yml)
+3. Create schema and seed data:
+   - `docker exec -i medibook-mysql mysql -umedibook -pmedibook123 medibook < database/schema.sql`
+   - `docker exec -i medibook-mysql mysql -umedibook -pmedibook123 medibook < database/seed.sql`
+4. `npm install`
+5. `npm start` (API on port 3000)
+6. In a second terminal: `npm run worker`
+7. `npm test` (Jest, no database or Redis needed)
+
+Feedback page: http://localhost:3000/feedback?lang=en or ?lang=fr (unknown languages fall back to English)
+
+## Endpoints
+- `GET/POST /api/patients`, `GET/PUT/DELETE /api/patients/:id`
+- `GET/POST /api/doctors`, `GET/PUT/DELETE /api/doctors/:id`
+- `POST /api/appointments`, `GET /api/appointments`, `GET /api/appointments/:id`, `POST /api/appointments/:id/cancel`
+- `POST /api/waitlist`, `GET /api/waitlist?doctor_id=&appointment_datetime=`
+- `GET /api/doctors/:id/stats`, `GET /api/reports/doctors`, `GET /api/reports/busy-days`
+- `GET /feedback?lang=en|fr`
+
+## Design decisions
+
+**Schema and constraints.** `UNIQUE (doctor_id, active_slot)`: `active_slot` is a generated column equal to the appointment time while booked and NULL once cancelled. MySQL ignores NULLs in unique indexes, so two live appointments cannot share a doctor slot, but a cancelled slot can be rebooked and the cancelled row stays for refund history. CHECK constraints enforce the 30-minute boundary, start times from 09:00 to 16:30, non-negative money, and refund <= amount paid.
+
+**Concurrency.** Booking runs in one transaction that locks the doctor row with `SELECT ... FOR UPDATE`, so simultaneous requests for the same doctor run one at a time and the 12-per-day cap cannot be beaten. The UNIQUE constraint guards the exact slot (409).
+
+**Refund policy.** Computed on the server only: more than 48h before = 100%; from 24h up to and including 48h = 50% (exactly 48h and exactly 24h both give 50%); under 24h = 0%. Cancellation and refund are saved in one transaction.
+
+**Status codes.** 400 bad input, 404 unknown id, 409 conflict (slot taken, day full, already cancelled), 422 rule violation (past, outside hours, not on a 30-minute boundary).
+
+**Audit log.** JSON lines in `logs/audit.log`, written with `fs.promises.appendFile` inside try/catch. `logs/` is created automatically, and a logging failure never fails the request.
+
+**Waitlist and queues.** BullMQ queues on Redis. A cancellation adds a `slot-freed` job; a separate worker process (`npm run worker`) pops the first waitlisted patient from a Redis list and books them. If that booking fails, the patient is pushed back to the front of the list. Each booking enqueues a confirmation job that the worker writes to the audit log.
+
+**Configuration.** Business values (12 cap, working hours, refund tiers) live in `src/config/constants.js`; connection settings come from `.env`.
+
 # Final Assessment — Backend Development
 
 **Weight:** 30% of final grade
@@ -106,7 +150,7 @@ Tests must not require a live MySQL or Redis connection — that's the point of 
 
 ## Part G — i18n & l10n: Course Feedback Page
 
-Create a **simple HTML page** (served by your Express app at `GET /feedback`) containing a short course-feedback form with **exactly 5 essay questions** (each answered in a `<textarea>`):
+Create a **simple HTML page** (served by your Express app at `GET /feedback?lang=en|fr.`) containing a short course-feedback form with **exactly 5 essay questions** (each answered in a `<textarea>`):
 
 1. Which topic in this course did you find most challenging, and why?
 2. Describe one concept you understood only after the practical assignments. What made it click?

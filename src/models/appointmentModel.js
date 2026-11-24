@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const AppError = require('../utils/AppError');
 const C = require('../config/constants');
+const { calculateRefund, refundAmount, toDate, formatDateTime } = require('../services/refundService');
 
 async function findById(id) {
   const [rows] = await pool.execute('SELECT * FROM appointments WHERE id = ?', [id]);
@@ -65,6 +66,39 @@ async function book({ patient_id, doctor_id, datetime, date }) {
   } finally {
     conn.release();
   }
+}
+// Cancel + record refund in ONE transaction. The row is locked so two
+// simultaneous cancels cannot both succeed. The row is kept for history;
+// active_slot becomes NULL, which frees the slot for rebooking.
+async function cancel(id, now = new Date()) {
+  const conn = await pool.getConnection();
+  let refund;
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.execute('SELECT * FROM appointments WHERE id = ? FOR UPDATE', [id]);
+    if (rows.length === 0) throw new AppError('Appointment not found', 404);
+    const appt = rows[0];
+    if (appt.status === 'cancelled') throw new AppError('Appointment is already cancelled', 409);
+    if (toDate(appt.appointment_datetime).getTime() <= now.getTime()) {
+      throw new AppError('Cannot cancel an appointment that has already started', 422);
+    }
+
+    refund = calculateRefund(appt.appointment_datetime, now);
+    const amount = refundAmount(appt.amount_paid, refund.percent);
+
+    await conn.execute(
+      `UPDATE appointments SET status = 'cancelled', refund_amount = ?, cancelled_at = ? WHERE id = ?`,
+      [amount, formatDateTime(now), id]
+    );
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+  return { appointment: await findById(id), refund };
 }
 
 module.exports = { findById, findAll, book };

@@ -33,3 +33,12 @@ exports.list = asyncHandler(async (req, res) => {
   }
   res.json(await Appointment.findAll(filters));
 });
+exports.cancel = asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  // refund is computed on the server only; nothing from the client body is used
+  const { appointment, refund } = await Appointment.cancel(id);
+  res.json({
+    message: `Appointment cancelled: ${refund.percent}% refund (${refund.tier})`,
+    appointment,
+  });
+});

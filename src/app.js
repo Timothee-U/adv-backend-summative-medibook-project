@@ -8,6 +8,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/patients', require('./routes/patientRoutes'));
 app.use('/api/doctors', require('./routes/doctorRoutes'));
+app.use('/api/appointments', require('./routes/appointmentRoutes'));
 
 app.use(notFound);
 app.use(errorHandler);

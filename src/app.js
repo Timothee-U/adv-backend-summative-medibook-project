@@ -6,7 +6,8 @@ app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Routes will be added here (patients, doctors, appointments, reports)
+app.use('/api/patients', require('./routes/patientRoutes'));
+app.use('/api/doctors', require('./routes/doctorRoutes'));
 
 app.use(notFound);
 app.use(errorHandler);

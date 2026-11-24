@@ -4,8 +4,10 @@ function notFound(req, res) {
 
 function errorHandler(err, req, res, next) {
   // Known app errors
-  if (err.status) {
-    return res.status(err.status).json({ error: err.message });
+    if (err.status) {
+    const body = { error: err.message };
+    if (err.waitlist) body.waitlist = err.waitlist;
+    return res.status(err.status).json(body);
   }
   // Bad JSON body
   if (err.type === 'entity.parse.failed') {

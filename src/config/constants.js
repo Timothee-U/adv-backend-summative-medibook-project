@@ -4,10 +4,10 @@ module.exports = {
   WORK_START: '09:00',
   WORK_END: '17:00',
   LAST_SLOT_START: '16:30',
+  BUSY_DAY_THRESHOLD: 10,
   REFUND: {
-    FULL_HOURS: 48,     // more than 48h before: full refund
-    PARTIAL_HOURS: 24,  // 24h up to 48h before: partial refund
+    FULL_HOURS: 48,
+    PARTIAL_HOURS: 24,
     PARTIAL_PERCENT: 50,
-    // less than 24h before: no refund
   },
 };

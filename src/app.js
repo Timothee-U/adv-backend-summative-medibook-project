@@ -9,6 +9,9 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/patients', require('./routes/patientRoutes'));
 app.use('/api/doctors', require('./routes/doctorRoutes'));
 app.use('/api/appointments', require('./routes/appointmentRoutes'));
+app.use('/api/waitlist', require('./routes/waitlistRoutes'));
+app.use('/api/reports', require('./routes/reportRoutes'));
+app.use('/feedback', require('./routes/feedbackRoutes'));
 
 app.use(notFound);
 app.use(errorHandler);

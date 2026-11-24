@@ -101,4 +101,4 @@ async function cancel(id, now = new Date()) {
   return { appointment: await findById(id), refund };
 }
 
-module.exports = { findById, findAll, book };
+module.exports = { findById, findAll, book, cancel };

@@ -1,6 +1,6 @@
 # MediBook - Setup
 
-Video walkthrough: PASTE-LINK-HERE
+Video walkthrough: https://youtu.be/GgHGue8EYBc
 
 ## Requirements
 Node.js 20+, Docker Desktop (runs MySQL and Redis).
